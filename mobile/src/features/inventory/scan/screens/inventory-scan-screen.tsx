@@ -56,7 +56,7 @@ export function InventoryScanScreen() {
   useEffect(() => {
     // Chỉ stop scan khi thoát màn hình, không tự động start
     return () => {
-      stopScan().catch(() => {});
+      stopScan().catch(() => { });
     };
   }, []);
 
@@ -68,7 +68,7 @@ export function InventoryScanScreen() {
 
       if (mappedTags.length > 0) {
         setLastScanAt(Date.now());
-        inventoryApi.pushLiveScan(mappedTags).catch(() => {});
+        inventoryApi.pushLiveScan(mappedTags).catch(() => { });
       }
     }
   }, [scannedTags, isScanning]);
@@ -180,21 +180,21 @@ export function InventoryScanScreen() {
       const serverNames = await inventoryApi.pullTags();
       const serverEpcs = Object.keys(serverNames);
       const scannedEpcs = Object.keys(scannedTags);
-      
+
       // Debug: so sánh format EPC
       if (scannedEpcs.length > 0 && serverEpcs.length > 0) {
         console.log('[Sync Debug] Scanned EPC sample:', JSON.stringify(scannedEpcs[0]));
         console.log('[Sync Debug] Server EPC sample:', JSON.stringify(serverEpcs[0]));
       }
-      
+
       // Đếm số thẻ khớp
       const matched = scannedEpcs.filter(epc => serverNames[epc]);
       console.log(`[Sync] Server: ${serverEpcs.length} | Scanned: ${scannedEpcs.length} | Matched: ${matched.length}`);
-      
+
       updateServerNames(serverNames);
       setLastSyncedAt(Date.now());
 
-      const matchInfo = scannedEpcs.length > 0 
+      const matchInfo = scannedEpcs.length > 0
         ? `\n${matched.length}/${scannedEpcs.length} thẻ đã quét được nhận diện.`
         : '';
 
@@ -207,7 +207,7 @@ export function InventoryScanScreen() {
       Alert.alert(
         "Không thể làm mới dữ liệu",
         e.message ||
-          "Đã có lỗi kết nối lên máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau.",
+        "Đã có lỗi kết nối lên máy chủ. Vui lòng kiểm tra lại mạng hoặc thử lại sau.",
       );
     } finally {
       setIsSyncing(false);
@@ -229,9 +229,9 @@ export function InventoryScanScreen() {
 
   const handleToggleScan = () => {
     if (isScanning) {
-      stopScan().catch(() => {});
+      stopScan().catch(() => { });
     } else {
-      startScan().catch(() => {});
+      startScan().catch(() => { });
       Alert.alert(
         "Sẵn sàng quét",
         "Vui lòng bóp cò thiết bị RFID để đọc thẻ. Nếu đã bóp cò, vui lòng bấm Đóng.",

@@ -22,7 +22,7 @@ export function LoginScreen() {
       const response: any = await loginApi({ username, password, deviceType: 'MOBILE' });
       const token = response.data?.access_token || response.access_token;
       const role = response.data?.user?.role || response.user?.role || null;
-      
+
       if (token) {
         login(token, username, role);
       } else {
@@ -36,35 +36,35 @@ export function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        
+
         {/* Header & Logo Section */}
         <View style={styles.headerSection}>
-          <Image 
-            source={require('../../../../assets/vtex_logo.png')} 
-            style={styles.logoImage} 
-            resizeMode="contain" 
+          <Image
+            source={require('../../../../assets/vtex_logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
           />
           <View style={styles.titleWrapper}>
             <Text style={styles.title}>RFID Inventory</Text>
-            <Text style={styles.subtitle}>Enterprise Precision Logistics</Text>
+            <Text style={styles.subtitle}>Quản lý Kho Thông minh</Text>
           </View>
         </View>
 
         {/* Main Form Section */}
         <View style={styles.formSection}>
-          
+
           <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>USERNAME</Text>
+            <Text style={styles.inputLabel}>TÊN ĐĂNG NHẬP</Text>
             <View style={styles.inputBox}>
               <User size={18} color="#94A3B8" style={{ marginLeft: 16 }} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your ID"
+                placeholder="Nhập tên đăng nhập"
                 placeholderTextColor="rgba(119, 117, 135, 0.5)"
                 value={username}
                 onChangeText={setUsername}
@@ -76,9 +76,9 @@ export function LoginScreen() {
 
           <View style={styles.inputWrapper}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={styles.inputLabel}>PASSWORD</Text>
+              <Text style={styles.inputLabel}>MẬT KHẨU</Text>
               <TouchableOpacity>
-                <Text style={styles.forgotLink}>Forgot Access?</Text>
+                <Text style={styles.forgotLink}>Quên mật khẩu?</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.inputBox}>
@@ -103,7 +103,7 @@ export function LoginScreen() {
             </View>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
             onPress={handleLogin}
             disabled={loading}
@@ -111,17 +111,17 @@ export function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginBtnText}>Sign in to Inventory</Text>
+              <Text style={styles.loginBtnText}>Đăng nhập</Text>
             )}
           </TouchableOpacity>
         </View>
 
         {/* Footer / Biometric Section */}
         <View style={styles.footerSection}>
-          
+
           <View style={styles.dividerRow}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText}>SECURE ACCESS</Text>
+            <Text style={styles.dividerText}>TRUY CẬP AN TOÀN</Text>
             <View style={styles.divider} />
           </View>
 
@@ -129,11 +129,11 @@ export function LoginScreen() {
             <TouchableOpacity style={styles.bioBtn}>
               <Fingerprint size={28} color="#3525CD" />
             </TouchableOpacity>
-            <Text style={styles.bioText}>BIOMETRIC LOGIN</Text>
+            <Text style={styles.bioText}>VÂN TAY</Text>
           </View>
 
           <View style={styles.modeContainer}>
-            <Text style={styles.modeLabel}>Precision Mode:</Text>
+            <Text style={styles.modeLabel}>Phiên bản:</Text>
             <View style={styles.modeBadge}>
               <Text style={styles.modeBadgeText}>RFID_v4.2.0</Text>
             </View>
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 32,
   },
-  
+
   headerSection: {
     alignItems: 'center',
     gap: 8,
