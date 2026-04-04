@@ -6,6 +6,7 @@ export const loginAuth = async (data: LoginCredentials): Promise<AuthResponse> =
     method: 'POST',
     body: JSON.stringify(data),
   });
-  // NestJS có Global Interceptor bọc response trong { success: true, data: {...} }
-  return res.data ? res.data : res;
+  
+  // Backend wrap response: { success: true, message: '...', data: { access_token, refresh_token, ... } }
+  return res.data || res;
 };

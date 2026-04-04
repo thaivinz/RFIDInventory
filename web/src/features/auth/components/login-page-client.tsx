@@ -32,9 +32,16 @@ setIsSubmitLoading(true);
 
 try {
   const res = await loginAuth({ username, password, deviceType: 'WEB' });
-  login(res.access_token, res.refresh_token, rememberMe);
-} catch {
-  setError('Tên đăng nhập hoặc mật khẩu không đúng');
+  
+  if (res && res.access_token) {
+    login(res.access_token, res.refresh_token, rememberMe);
+  } else {
+    throw new Error('Dữ liệu đăng nhập không hợp lệ');
+  }
+} catch (err: any) {
+  console.error('[LoginPage] Login failed:', err);
+  // Hiển thị thông báo lỗi chi tiết từ server nếu có
+  setError(err.message || 'Tên đăng nhập hoặc mật khẩu không đúng');
 } finally {
   setIsSubmitLoading(false);
 }

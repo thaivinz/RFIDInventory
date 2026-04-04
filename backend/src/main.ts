@@ -13,11 +13,15 @@ class ApplicationBootstrap {
     app.useLogger(app.get(Logger));
 
     const config = app.get(ConfigService);
-    const corsOrigins = config.get('CORS_ORIGINS', 'http://localhost:3001');
+    const corsOrigins = config.get('CORS_ORIGINS', '*');
 
     app.enableCors({
-      origin: corsOrigins.split(',').map((o: string) => o.trim()),
+      origin: corsOrigins === '*' 
+        ? true 
+        : corsOrigins.split(',').map((o: string) => o.trim()),
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
     });
 
     app.useGlobalPipes(
