@@ -3,6 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { useAuthStore } from '../store/auth.store';
 import { User, Lock, Fingerprint, Scan, Eye, EyeOff } from 'lucide-react-native';
 import { loginApi } from '../api/login';
+import { API_URL } from '../../../shared/api/config';
+import { NetworkError } from '../../../shared/api/errors';
 
 export function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -20,8 +22,11 @@ export function LoginScreen() {
     setLoading(true);
     try {
       const response: any = await loginApi({ username, password, deviceType: 'MOBILE' });
-      const token = response.data?.access_token || response.access_token;
-      const role = response.data?.user?.role || response.user?.role || null;
+      
+      // Backend wrap response: { success: true, message: '...', data: { access_token, ... } }
+      const authData = response.data || response;
+      const token = authData.access_token;
+      const role = authData.user?.role || null;
 
       if (token) {
         login(token, username, role);
@@ -29,7 +34,19 @@ export function LoginScreen() {
         throw new Error('Không nhận được token từ server');
       }
     } catch (error: any) {
-      Alert.alert('Đăng nhập thất bại', error.message || 'Lỗi không xác định');
+      console.error('[LoginScreen] Error:', error);
+      
+      let title = 'Đăng nhập thất bại';
+      let message = error.message || 'Lỗi không xác định';
+
+      if (error instanceof NetworkError) {
+        message = `Không kết nối được tới server.\nAPI: ${API_URL}\nHãy kiểm tra EXPO_PUBLIC_API_URL hoặc IP LAN của máy chạy backend.`;
+      } else if (error.data && error.data.message) {
+        // Lỗi từ backend (ApiError) gửi về
+        message = error.data.message;
+      }
+
+      Alert.alert(title, message);
     } finally {
       setLoading(false);
     }

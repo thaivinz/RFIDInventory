@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { UsersService } from '@users/users.service';
 import { PrismaService } from '@prisma/prisma.service';
 import { BusinessException } from '@common/exceptions/business.exception';
@@ -73,24 +74,7 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + this.refreshExpDays);
 
-    // Đảm bảo mỗi user chỉ có 1 session active cho mỗi loại thiết bị (WEB / MOBILE)
-    await this.prisma.refreshToken.updateMany({
-      where: {
-        userId: user.id,
-        deviceType,
-        revoked: false
-      },
-      data: { revoked: true }
-    });
-
-    await this.prisma.refreshToken.create({
-      data: {
-        token: hashedToken,
-        userId: user.id,
-        deviceType,
-        expiresAt,
-      },
-    });
+    await this.persistRefreshToken(user.id, hashedToken, expiresAt, deviceType);
 
     return {
       access_token: accessToken,
@@ -127,13 +111,7 @@ export class AuthService {
 
     // Bước 2: Kiểm tra token còn hợp lệ trong DB
     const hashedToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
-    const storedToken = await this.prisma.refreshToken.findFirst({
-      where: {
-        token: hashedToken,
-        revoked: false,
-        expiresAt: { gt: new Date() },
-      },
-    });
+    const storedToken = await this.findStoredRefreshToken(hashedToken);
 
     if (!storedToken) {
       throw new BusinessException('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'AUTH_REFRESH_INVALID', HttpStatus.UNAUTHORIZED);
@@ -155,14 +133,12 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + this.refreshExpDays);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        token: newHashedToken,
-        userId: user.id,
-        deviceType: storedToken.deviceType,
-        expiresAt,
-      },
-    });
+    await this.createRefreshTokenRecord(
+      newHashedToken,
+      user.id,
+      expiresAt,
+      storedToken.deviceType || 'WEB',
+    );
 
     return {
       access_token: newAccessToken,
@@ -184,6 +160,117 @@ export class AuthService {
       data: { revoked: true },
     });
     return null;
+  }
+
+  private async persistRefreshToken(
+    userId: string,
+    hashedToken: string,
+    expiresAt: Date,
+    deviceType: string,
+  ) {
+    try {
+      // Đảm bảo mỗi user chỉ có 1 session active cho mỗi loại thiết bị (WEB / MOBILE)
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          userId,
+          deviceType,
+          revoked: false,
+        },
+        data: { revoked: true },
+      });
+    } catch (error) {
+      if (!this.isMissingDeviceTypeColumnError(error)) {
+        throw error;
+      }
+
+      // Legacy DB chưa có cột deviceType: thu hồi tất cả session active của user.
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          userId,
+          revoked: false,
+        },
+        data: { revoked: true },
+      });
+    }
+
+    await this.createRefreshTokenRecord(hashedToken, userId, expiresAt, deviceType);
+  }
+
+  private async createRefreshTokenRecord(
+    hashedToken: string,
+    userId: string,
+    expiresAt: Date,
+    deviceType: string,
+  ) {
+    try {
+      await this.prisma.refreshToken.create({
+        data: {
+          token: hashedToken,
+          userId,
+          deviceType,
+          expiresAt,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingDeviceTypeColumnError(error)) {
+        throw error;
+      }
+
+      await this.prisma.$executeRawUnsafe(
+        'INSERT INTO "RefreshToken" ("id", "token", "userId", "revoked", "expiresAt", "createdAt") VALUES ($1, $2, $3, false, $4, NOW())',
+        randomUUID(),
+        hashedToken,
+        userId,
+        expiresAt,
+      );
+    }
+  }
+
+  private async findStoredRefreshToken(hashedToken: string) {
+    try {
+      return await this.prisma.refreshToken.findFirst({
+        where: {
+          token: hashedToken,
+          revoked: false,
+          expiresAt: { gt: new Date() },
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingDeviceTypeColumnError(error)) {
+        throw error;
+      }
+
+      const rows = await this.prisma.$queryRawUnsafe<Array<{
+        id: string;
+        userId: string;
+        revoked: boolean;
+        expiresAt: Date;
+      }>>(
+        'SELECT "id", "userId", "revoked", "expiresAt" FROM "RefreshToken" WHERE "token" = $1 AND "revoked" = false AND "expiresAt" > NOW() ORDER BY "createdAt" DESC LIMIT 1',
+        hashedToken,
+      );
+
+      if (rows.length === 0) return null;
+
+      return {
+        ...rows[0],
+        deviceType: 'WEB',
+      };
+    }
+  }
+
+  private isMissingDeviceTypeColumnError(error: unknown) {
+    if (!(error instanceof Error)) return false;
+
+    return (
+      error.message.includes('deviceType') &&
+      (
+        error.message.includes('does not exist') ||
+        error.message.includes('Unknown arg') ||
+        error.message.includes('Unknown field') ||
+        error.message.includes('column')
+      )
+    );
   }
 
   /** Tạo access token JWT. Payload: { sub, username, role, locationId } */
